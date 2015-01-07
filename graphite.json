@@ -4,7 +4,7 @@
   "variables": {
     
     "graphite_version": "0.9.10",
-    "packer_graphite_version": "0.0.1",
+    "packer_graphite_version": "0.1.0",
     
     "packer_graphite_repo": "http://github.com/ksclarke/packer-graphite",
     

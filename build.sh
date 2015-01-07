@@ -22,22 +22,47 @@ if [ ! -f vars.json ]; then
   exit 1
 fi
 
-# Configure a particular Packer.io builder, if desired; or, clean up previous build artifacts and quit
+# Configure a particular Packer.io builder, if desired
 if [ ! -z "$1" ]; then
   if [ "$1" == "amazon-ebs" ] || [ "$1" == "docker" ]; then
     BUILDER="-only=$1"
+  elif [ "$1" == "validate" ]; then
+    echo "Validating project's Packer.io configuration..."
+    BUILDER="skip-build"
   else
     echo "  The requested Packer.io builder \"$1\" is not yet supported"
-    echo "   Supported builders include: 'amazon-ebs' and 'docker'"
+    echo "   Supported builders: 'amazon-ebs' and 'docker'"
     exit 1
   fi
 fi
+
+# Turn the URL for this git repository into a URL more fit for human consumption
+function humanize-repo-url {
+  if hash git 2>/dev/null; then
+    GIT_REPO_URL=`git config --get remote.origin.url`
+
+    if [[ $GIT_REPO_URL == git@* ]]; then
+      GIT_REPO_URL="${GIT_REPO_URL/git@/https:\/\/}"
+    fi
+
+    if [[ $GIT_REPO_URL == *.git ]]; then
+      GIT_REPO_URL="${GIT_REPO_URL/\.git/}"
+    fi
+
+    GIT_REPO_URL="${GIT_REPO_URL/github.com:/github.com/}"
+  fi
+}
+
+# A temporary workaround until I get around to writing a docker-fig post-processor for Packer
+function extract_from_json {
+  export ${1}=`grep -Po "\"${2}\": ?\".*\",?" ${3}.json | sed "s/\"${2}\": \"//" | tr -d "\","`
+}
 
 # The main work of the script
 function build_graphite {
   packer validate -var-file=vars.json graphite.json
 
-  # Looks to see if the vars file has any empty passwords; creates passwords if needed
+  # Looks to see if the vars file has any empty password variables; creates passwords if needed
   while read LINE; do
     if [ ! -z "$LINE" ]; then
       REPLACEMENT="_password\": \"`openssl rand -base64 12`\""
@@ -61,9 +86,37 @@ function build_graphite {
 
   # If we're not running in CI, use vars file; else, use ENV vars
   if [ -z "$CONTINUOUS_INTEGRATION" ]; then
-    PACKER_LOG=$PACKER_LOG_VALUE packer build $BUILDER -var-file=vars.json graphite.json
+    humanize-repo-url
+    if [ ! -z "$GIT_REPO_URL" ]; then REPO_URL_VAR="--var packer_fcrepo3_repo=$GIT_REPO_URL"; fi
+
+    # If we're running in debug mode, inform which repository we're building from
+    if [ "$DEBUG" = true ] && [ ! -z "$GIT_REPO_URL" ]; then
+      echo "Running new build checked out from $GIT_REPO_URL"
+    fi
+
+    if [ "$BUILDER" != "skip-build" ]; then
+      PACKER_LOG=$PACKER_LOG_VALUE packer build $BUILDER $REPO_URL_VAR -var-file=vars.json graphite.json
+
+      # If we're running a docker build, create a fig.yml file (this is a workaround until a docker-fig post-processor exists)
+      if [[ "$BUILDER" == *docker* ]]; then
+        extract_from_json "DOCKER_USER" "docker_user" "vars"
+        extract_from_json "GRAPHITE_VERSION" "packer_graphite_version" "graphite"
+
+        # Write out the simple fig.yml file
+        if [ ! -z "$DOCKER_USER" ]; then
+          echo "graphite:" > fig.yml
+          echo "  image: $DOCKER_USER/packer-graphite:$GRAPHITE_VERSION" >> fig.yml
+          echo "  command: sudo /usr/bin/supervisord -c /etc/supervisor/supervisord.conf" >> fig.yml
+          echo "  ports:" >> fig.yml
+          echo "    - 80:80" >> fig.yml
+          echo "    - 2003:2003" >> fig.yml
+        else
+          echo "Fig configuration not auto-generated because docker_user doesn't seem to be configured"
+        fi
+      fi
+    fi
   else
-    echo "Running within a continuous integration server"
+    echo "Running within Travis, a continuous integration server"
     GRAPHITE_ADMIN_PASSWORD=`openssl rand -base64 12`
     GRAPHITE_SECRET_KEY=`openssl rand -base64 12`
     echo $GRAPHITE_ADMIN_PASSWORD > graphite_admin_password
