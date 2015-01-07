@@ -1,0 +1,111 @@
+
+
+{
+  "variables": {
+    
+    "graphite_version": "0.9.10",
+    "packer_graphite_version": "0.0.1",
+    
+    "packer_graphite_repo": "http://github.com/ksclarke/packer-graphite",
+    
+    "aws_access_key": "{{env `AWS_ACCESS_KEY`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_KEY`}}",
+    "aws_security_group_id": "{{env `AWS_SECURITY_GROUP_ID`}}",
+    "aws_region": "{{env `AWS_REGION`}}",
+    "aws_instance_type": "{{env `AWS_INSTANCE_TYPE`}}",
+    "aws_source_ami": "{{env `AWS_SOURCE_AMI`}}",
+    "aws_virtualization_type": "{{env `AWS_VIRTUALIZATION_TYPE`}}",
+    "server_admin_email": "{{env `PACKER_GRAPHITE_EMAIL`}}",
+    "server_host_name": "localhost",
+    "packer_build_name": "{{env `PACKER_GRAPHITE_BUILD_NAME`}}",
+    "docker_user": "{{env `DOCKER_USER`}}",
+    "automatic_os_security_updates": "false",
+    "automatic_os_reboot": "false",
+    
+    "graphite_admin_password": "",
+    "graphite_secret_key_password": ""
+  },
+  "builders": [
+    
+    {
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      
+      "security_group_id": "{{user `aws_security_group_id`}}",
+      "region": "{{user `aws_region`}}",
+      "associate_public_ip_address": "true",
+      
+      "source_ami": "{{user `aws_source_ami`}}",
+      "instance_type": "{{user `aws_instance_type`}}",
+      "ami_virtualization_type": "{{user `aws_virtualization_type`}}",
+      
+      "ssh_username": "ubuntu",
+      "tags": { "OS_Version": "Ubuntu", "Release": "Graphite {{user `graphite_version`}}" },
+      
+      "ami_name": "{{user `packer_build_name`}} Graphite [{{timestamp}}]",
+      "ami_description": "A Graphite deployment built with Packer.io"
+    },
+    {
+      "type": "docker",
+      "image": "ubuntu:14.04",
+      "commit": "true",
+      "pull": "true"
+    }
+  ],
+  "provisioners": [ 
+    
+    {
+      "type": "file",
+      "except": ["docker"],
+      "source": "scripts/carbon-cache-initd.sh",
+      "destination": "/tmp/carbon-cache"
+    },
+    
+    {
+      "type": "shell",
+      "environment_vars": [
+        "SERVER_ADMIN_EMAIL={{user `server_admin_email`}}",
+        "GRAPHITE_SECRET_KEY={{user `graphite_secret_key_password`}}",
+        "GRAPHITE_ADMIN_PASSWORD={{user `graphite_admin_password`}}"
+      ],
+      "scripts": [
+        "scripts/setup-base-system.sh",
+        "scripts/install-graphite.sh",
+        "scripts/configure-apache.sh"
+      ]
+    },
+    
+    {
+      "type": "shell",
+      "except": ["docker"],
+      "environment_vars": [
+        "PACKER_GRAPHITE_REPO={{user `packer_graphite_repo`}}",
+        "SERVER_HOST_NAME={{user `server_host_name`}}",
+        "SERVER_ADMIN_EMAIL={{user `server_admin_email`}}",
+        "AUTOMATIC_OS_SECURITY_UPDATES={{user `automatic_os_security_updates`}}",
+        "AUTOMATIC_OS_REBOOT={{user `automatic_os_reboot`}}"
+      ],
+      "scripts": [
+        "scripts/modify-landscape.sh",
+        "scripts/configure-carbon-cache.sh",
+        "scripts/configure-base-system.sh"
+      ]
+    },
+    
+    {
+      "type": "shell",
+      "only": ["docker"],
+      "script": "scripts/install-supervisor.sh"
+    }
+  ],
+  "post-processors": [
+    
+    {
+      "type": "docker-tag",
+      "only": ["docker"],
+      "repository": "{{user `docker_user`}}/packer-graphite",
+      "tag": "{{user `packer_graphite_version`}}"
+    }
+  ]
+}
