@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -e
+
 #
 # A little script I use to run the Packer build because I like to have comments in
 # my JSON (documenting what everything is). But, that's not allowed:
@@ -22,34 +24,50 @@ if [ ! -f vars.json ]; then
   exit 1
 fi
 
-# Configure a particular Packer.io builder, if desired
-if [ ! -z "$1" ]; then
-  if [ "$1" == "amazon-ebs" ] || [ "$1" == "docker" ]; then
-    BUILDER="-only=$1"
-  elif [ "$1" == "validate" ]; then
-    echo "Validating project's Packer.io configuration..."
-    BUILDER="skip-build"
+function check_builder {
+  if [ "$1" == "amazon-ebs" ] || [ "$1" == "docker" ] || [ "$1" == "digitalocean" ]; then
+    if [[ "$BUILDER" != *only* ]]; then
+      BUILDER="-only=$1"
+    else
+      BUILDER="$BUILDER,$1"
+    fi
   else
     echo "  The requested Packer.io builder \"$1\" is not yet supported"
-    echo "   Supported builders: 'amazon-ebs' and 'docker'"
+    echo "   Supported builders: 'amazon-ebs', 'docker', and 'digitalocean'"
     exit 1
+  fi
+}
+
+# Configure a particular Packer.io builder, if desired
+if [ ! -z "$1" ]; then
+  if [ "$1" != "validate" ]; then
+    OIFS="$IFS"
+    IFS=','
+    for BUILDER_VALUE in $1; do
+      check_builder "$BUILDER_VALUE"
+    done
+    IFS="$OIFS"
+  else
+    BUILDER="skip-build"
   fi
 fi
 
 # Turn the URL for this git repository into a URL more fit for human consumption
 function humanize-repo-url {
   if hash git 2>/dev/null; then
-    GIT_REPO_URL=`git config --get remote.origin.url`
+    if [ -f ".git/config" ] && [ `cat .git/config |grep -c "\[remote"` -gt 1 ]; then
+      GIT_REPO_URL=$(git config --get remote.origin.url)
 
-    if [[ $GIT_REPO_URL == git@* ]]; then
-      GIT_REPO_URL="${GIT_REPO_URL/git@/https:\/\/}"
+      if [[ $GIT_REPO_URL == git@* ]]; then
+        GIT_REPO_URL="${GIT_REPO_URL/git@/https:\/\/}"
+      fi
+
+      if [[ $GIT_REPO_URL == *.git ]]; then
+        GIT_REPO_URL="${GIT_REPO_URL/\.git/}"
+      fi
+
+      GIT_REPO_URL="${GIT_REPO_URL/github.com:/github.com/}"
     fi
-
-    if [[ $GIT_REPO_URL == *.git ]]; then
-      GIT_REPO_URL="${GIT_REPO_URL/\.git/}"
-    fi
-
-    GIT_REPO_URL="${GIT_REPO_URL/github.com:/github.com/}"
   fi
 }
 
@@ -60,7 +78,11 @@ function extract_from_json {
 
 # The main work of the script
 function build_graphite {
-  packer validate -var-file=vars.json graphite.json
+  if [ "$BUILDER" == "skip-build" ]; then
+    packer validate -var-file=vars.json graphite.json
+  else
+    packer validate $BUILDER -var-file=vars.json graphite.json
+  fi
 
   # Looks to see if the vars file has any empty password variables; creates passwords if needed
   while read LINE; do
@@ -90,7 +112,7 @@ function build_graphite {
   # If we're not running in CI, use vars file; else, use ENV vars
   if [ -z "$CONTINUOUS_INTEGRATION" ]; then
     humanize-repo-url
-    if [ ! -z "$GIT_REPO_URL" ]; then REPO_URL_VAR="--var packer_fcrepo3_repo=$GIT_REPO_URL"; fi
+    if [ ! -z "$GIT_REPO_URL" ]; then REPO_URL_VAR="--var packer_graphite_repo=$GIT_REPO_URL"; fi
 
     # If we're running in debug mode, inform which repository we're building from
     if [ "$DEBUG" = true ] && [ ! -z "$GIT_REPO_URL" ]; then
@@ -119,13 +141,11 @@ function build_graphite {
       fi
     fi
   else
-    echo "Running within Travis, a continuous integration server"
+    echo "Running within Travis, a continuous integration server [Builder: $BUILDER]"
     GRAPHITE_ADMIN_PASSWORD=`openssl rand -base64 12`
     GRAPHITE_SECRET_KEY=`openssl rand -base64 12`
-    echo $GRAPHITE_ADMIN_PASSWORD > graphite_admin_password
-    echo $GRAPHITE_SECRET_KEY > graphite_secret_key
 
-    PACKER_LOG=$PACKER_LOG_VALUE packer -machine-readable build \
+    PACKER_LOG=$PACKER_LOG_VALUE packer -machine-readable build $BUILDER \
       -var "graphite_admin_password=${GRAPHITE_ADMIN_PASSWORD}" \
       -var "graphite_secret_key_password=${GRAPHITE_SECRET_KEY}" \
       graphite.json | tee packer.log

@@ -9,6 +9,11 @@
 
   "docker_user": "",
 
+ "digitalocean_image": "ubuntu-14-04-x64",
+ "digitalocean_api_token": "",
+ "digitalocean_region": "nyc3",
+ "digitalocean_size": "512mb",
+
   "server_admin_email": "",
   "server_host_name": "localhost",
   "packer_build_name": "",

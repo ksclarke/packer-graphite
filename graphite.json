@@ -15,6 +15,10 @@
     "aws_instance_type": "{{env `AWS_INSTANCE_TYPE`}}",
     "aws_source_ami": "{{env `AWS_SOURCE_AMI`}}",
     "aws_virtualization_type": "{{env `AWS_VIRTUALIZATION_TYPE`}}",
+    "digitalocean_image": "{{env `DIGITALOCEAN_IMAGE`}}",
+    "digitalocean_api_token": "{{env `DIGITALOCEAN_API_TOKEN`}}",
+    "digitalocean_region": "{{env `DIGITALOCEAN_REGION`}}",
+    "digitalocean_size": "{{env `DIGITALOCEAN_SIZE`}}",
     "server_admin_email": "{{env `PACKER_GRAPHITE_EMAIL`}}",
     "server_host_name": "localhost",
     "packer_build_name": "{{env `PACKER_GRAPHITE_BUILD_NAME`}}",
@@ -51,6 +55,16 @@
       "image": "ubuntu:14.04",
       "commit": "true",
       "pull": "true"
+    },
+    {
+      "type": "digitalocean",
+      "api_token": "{{user `digitalocean_api_token`}}",
+      
+      "image": "{{user `digitalocean_image`}}",
+      "region": "{{user `digitalocean_region`}}",
+      "size": "{{user `digitalocean_size`}}",
+      "droplet_name": "graphite-{{user `server_host_name`}}",
+      "snapshot_name": "{{user `packer_build_name`}} Graphite [{{timestamp}}]"
     }
   ],
   "provisioners": [ 

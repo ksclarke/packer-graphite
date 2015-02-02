@@ -2,7 +2,10 @@ language: python
 
 branches:
   except:
-    - documentation
+   - documentation
+
+matrix:
+  fast_finish: true
 
 env:
   matrix:
@@ -10,13 +13,14 @@ env:
    - PACKER_VERSION="0.7.1" AWS_INSTANCE_TYPE="t2.medium" AWS_VIRTUALIZATION_TYPE="hvm" AWS_SOURCE_AMI="ami-0070c468" IP_INDEX=15 STRIP_COMMENTS=false
    - PACKER_VERSION="0.7.1" AWS_INSTANCE_TYPE="m3.medium" AWS_VIRTUALIZATION_TYPE="pv" AWS_SOURCE_AMI="ami-0870c460" IP_INDEX=16 STRIP_COMMENTS=true
   global:
-   # Secure variables: AWS_SECRET_KEY, AWS_ACCESS_KEY, AWS_SECURITY_GROUP_ID, AWS_OWNER_ID, AWS_SECURITY_GROUP, AWS_KEYPAIR_NAME (not in the order as below)
+   # Secure variables: AWS_SECRET_KEY, AWS_ACCESS_KEY, AWS_SECURITY_GROUP_ID, AWS_OWNER_ID, AWS_SECURITY_GROUP, AWS_KEYPAIR_NAME, DIGITALOCEAN_API_TOKEN (not in the order as below)
    - secure: "h3RZYIa758G++1qj5GIprArX+sOSSF5ZRaW6kxX0GtIAg2VZ5wGAVRza7HOb8fDbCeOcKmC6irJeQzMP6gQ/ileYdUeYzB+RZjk3frMvl0Wo6Q1OcCdPWcd7bdYfHGT8+/amFPv5TslU3afoAk+HNObowyRoN6IHdvkTe3wxnWo="
    - secure: "oS1WF0V2iWkrk22fjV/s538qcNmSLBDi0+ZK61dL3DtmZsUGiyBcRSZjRIlzHr9m6tXRfO8JsqURKnfc7l/Fuhk/QrMBoGfFmQIK3DpmV+LGtu87oIki6RXPsxYX4BcA0g2bW1SKtIrWzRLnc9bjsG9PcAKzsG+QseQugoFYVqg="
    - secure: "js9SACVxzqJPJZL9cJe7gXBt59OrczwgLcRPyxnonCp5Rv8XIzyJ2wwC4+DnxV3OhLVOlN2xOsN+hL0etVQMEyCNESPrMIbVEfaY9c+np6ZAAvztZZO3ZsjE/vRfE5UcPwT8dLv9vqV9G9jXeooAtrpQO1H9pfg7wDCuGfsNdHQ="
    - secure: "t7yW36zVVaMSyvPZ4EGfn0qLmEdMzT48XDJXzE+pMZdZwn1U/A7ztRdd+YUM707gLpYOCH1Q6XVUlvtzzFjwGBD9eaCmY4eonrj07nfrB+aWTozUGAVEPAc5ddHzkg+xwuv2Asn1YFzOmWSVk0iSoK/5nYIBivbrkT7weqbAh5Q="
    - secure: "z38F9r0k0CxiitJPz5CBBf3Vbqq2Q7fYhzErOvuKANUgV+8G9nbkMQaTjDaaDxIbHVN/U1AjFhozDcmplpv7Fh+hv94EhQCXZFO5scYr3Z6so49KRCp+llnEUm5BApVjRpYlnoEqxOw9bmhoo3kQ6yXkhetWvbfHc38/NaIUZRQ="
    - secure: "LErjTN/ZQjVl5jQq280ALBvLofw+YLId9iXkyDt45nOkK6inaXTODofcuESSeH1SF9b0IvuLeC9kC33r8eqwUgc+SE9X9VHfLRxyKbhVIl0XUrg7dBQXGdls66ChewihW+NCiLIytORNuZzV+iBehqYYiG6xXDw+ITsoWq/y6e8="
+   - secure: "mIx2EFW3INRUgVR4DFW2TnOcz95OohRsuIhfdsg/icjTb1ou92lu7aeJchWXbJXLSudTsvflhJCIXAgWI2NSRG3OWzsg/JHXl6xOUEzDw+wgqDSjYi+iQyALKtSgdPRFfn4CIuxz8FaLpZyy9+ZtQsk6+kmV28w+D9QbB3qb8s4="
    - AWS_REGION="us-east-1"
    - DEFAULT_SSH_USER="ubuntu"
    - PACKER_GRAPHITE_BUILD_NAME="travis-packer"
@@ -50,7 +54,7 @@ before_script:
 
 script:
  # Run the packer build script to create an AWS AMI with Graphite
- - travis_wait `pwd`/build.sh amazon-ebs
+ - ./build.sh amazon-ebs
  # Make sure build script completed successfully
  - if grep -q 'Builds finished but no artifacts were created' packer.log; then test ! true; fi
  # Start up an EC2 instance from the newly created AWS AMI

@@ -20,7 +20,17 @@ or
 
     ./build.sh docker
 
-This will include the variables file, generate passwords if needed, and strip the comments out of packer-graphite.json, creating the graphite.json file. Currently, only "amazon-ebs" and "docker" builds are supported. In the future, I expect to add support for VirtualBox (virtualbox-iso), VMWare (vmware-iso), and Digital Ocean.  Running the build script without "amazon-ebs" or "docker" will result in both being built.
+or
+
+    ./build.sh digitalocean
+
+You can also use more than one builder by using supplying a comma delimited list. For example, typing the following will produce Docker and Digital Ocean artifacts:
+
+    ./build.sh docker,digitalocean
+
+Using the build script includes the variables file, generates passwords if needed, strips the comments out of `packer-graphite.json` and creates `graphite.json` (which is used as the build file).
+
+Currently, only "amazon-ebs", "docker", and "digitalocean" builds are supported. In the future, I expect to add additional support for VirtualBox (virtualbox-iso) and VMWare (vmware-iso).  Running the build script without "amazon-ebs", "docker" or "digitalocean" will result in all being built.
 
 If you want to run the build in debug mode, try adding the DEBUG flag to one of the above options:
 
@@ -59,7 +69,7 @@ _Note: When running the build script, any empty variable in the vars.json file t
 
 </dl>
 
-### Amazon-EBS Variables
+### Amazon-EBS Specific Variables
 
 <dl>
 
@@ -82,16 +92,34 @@ _Note: When running the build script, any empty variable in the vars.json file t
   <dd>The AWS virtualization type to use. For instance: <strong>hvm</strong> or <strong>pv</strong>.</dd>
 
   <dt>aws_source_ami</dt>
-  <dd>The source AMI to use as a base. By default, this is the last Long Term Support (LTS) version of Ubuntu. Note that the source AMI, virtualization type, and instance type must be <a href="http://aws.amazon.com/amazon-linux-ami/instance-type-matrix/">compatible</a>. The two tested AMIs (from 'us-east-1') are <strong>ami-0870c460</strong> (with 'pv' virtualization) and <strong>ami-0070c468</strong> (with 'hvm' virtualization). If you select another, make sure it's an Ubuntu image (as that's what the Bash scripts that do the installation expect).</dd>
+  <dd>The source AMI to use as a base. Note that the source AMI, virtualization type, and instance type must be <a href="http://aws.amazon.com/amazon-linux-ami/instance-type-matrix/">compatible</a>. The two tested AMIs (from 'us-east-1') are <strong>ami-0870c460</strong> (with 'pv' virtualization) and <strong>ami-0070c468</strong> (with 'hvm' virtualization). If you select another, make sure it's an Ubuntu image (as that's what the Packer.io build expects).</dd>
 
 </dl>
 
-### Docker Variables
+### Docker Specific Variables
 
 <dl>
 
   <dt>docker_user</dt>
-  <dd>A Docker user (preferably a Docker registry user). Though the build is not currently configured to push to a Docker registry (like <a href="https://hub.docker.com/">Docker Hub</a>), this functionality will probably be added in the future. In the meantime, it just makes for nicer Docker image tags.</dd>
+  <dd>A Docker user (preferably a Docker registry user) used to disambiguate the build. Though the build is not currently configured to push to a Docker registry (like <a href="https://hub.docker.com/">Docker Hub</a>), this functionality will probably be added in the future.</dd>
+
+</dl>
+
+### Digital Ocean Specific Variables
+
+<dl>
+
+  <dt>digitalocean_image</dt>
+  <dd>The Digital Ocean source image to use; the default is the last Ubuntu Long Term Support (LTS) release. If you select another, make sure it's an Ubuntu image (as that's what the Packer.io build expects).</dd>
+
+  <dt>digitalocean_api_token</dt>
+  <dd>The API v2 <a href="https://cloud.digitalocean.com/settings/applications">Personal Access Token</a> for your Digital Ocean account. Version 1 of the Digital Ocean API uses two tokens, so you'll need to use the later version of the API.</dd>
+
+  <dt>digitalocean_region</dt>
+  <dd>The region into which your Digital Ocean Droplet spins up.  These are coordinated with the source image (not all source images are available in all regions), so if you change one be sure to check the other.</dd>
+
+  <dt>digitalocean_size</dt>
+  <dd>The amount of RAM to make available to the Droplet.  The default configuration of this project is 1 GB, but other options are available.  Consult the Digital Ocean documentation for more details.</dd>
 
 </dl>
 
