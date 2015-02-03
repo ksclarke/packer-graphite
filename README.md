@@ -158,6 +158,7 @@ This will start the Graphite container with the pre-configured port mappings.
 ## Potential Gotchas
 
 * There is an [outstanding issue](https://github.com/mitchellh/packer/issues/1752) with Docker 1.4.x and Packer's shell provisioner (which this project uses).  It works fine with Docker 1.3.3, though, so use that instead of Docker 1.4.x until the issue is resolved.
+* The 'amazon-ebs' builder fails occasionally; the failure looks like this [outstanding issue](https://github.com/mitchellh/packer/issues/1539) and also [this related one](https://github.com/mitchellh/packer/pull/1764). Re-running the build 'fixes' it.
 
 ## License
 
