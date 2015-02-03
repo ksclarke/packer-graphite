@@ -8,7 +8,7 @@ Usually a [Packer.io build](http://www.packer.io/docs/command-line/build.html) w
 
     packer build -only=amazon-ebs -var-file=vars.json graphite.json
 
-This project, though, provides a simple wrapper script. To use that, run:
+This project, though, provides a simple wrapper script. To use that, type:
 
     ./build.sh
 
@@ -147,13 +147,13 @@ You can alternatively reference it using the tag created from your docker_user, 
 
 If you have something already running at one or both of those ports, you'll want to choose different localhost ports to map.  Perhaps something like:
 
-    docker run -p 8000:80 -p 8001:2003 -t -i ksclarke/packer-graphite:0.1.0 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+    docker run -p 8000:80 -p 8003:2003 -t -i ksclarke/packer-graphite:0.1.0 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 If you have Docker [Fig](http://www.fig.sh/) installed, you can take advantage of the project's automatically generated `fig.yml` file and just run:
 
     fig up
 
-The repository will start the Graphite container with the pre-configured port mappings.
+This will start the Graphite container with the pre-configured port mappings.
 
 ## Potential Gotchas
 
