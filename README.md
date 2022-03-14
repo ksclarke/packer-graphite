@@ -2,6 +2,8 @@
 
 A Packer.io build for Graphite.  [Packer.io](http://www.packer.io/) is a tool for creating identical machine images for multiple platforms from a single source configuration.  It produces images for Amazon EC2, Digital Ocean, Docker, VirtualBox, VMWare, and others.  [Graphite](https://graphite.readthedocs.org/en/latest/) is an enterprise-scale monitoring (and graphing) tool that runs well on cheap hardware.
 
+_**Note:** This repo is archived because it's not something I'm actively updating any more._
+
 ## Introduction
 
 Usually a [Packer.io build](http://www.packer.io/docs/command-line/build.html) would be run with something like:
